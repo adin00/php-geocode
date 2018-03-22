@@ -70,18 +70,18 @@ class Geocode
 		}
 		
 		if(isset($options['region'])) {
-			$q .= "&region=" . $options['region'];
+			$q .= "&region=" . urlencode($options['region']);
 		}
 		
 		if(isset($options['components'])) {
 			$components = [];
 			foreach ($options['components'] as $key => $component) {
-				$components[] = "{$key}:{$component}";
+				$components[] = $key . ":" . urlencode($component);
 			}
 			$q .= "&components=" . join('|', $components);
 		}
 		
-		return urlencode($q);
+		return $q;
 	}
 	
 	/**
@@ -89,18 +89,22 @@ class Geocode
 	 *
 	 * @param $address
 	 * @param array $options
+	 * @param string $sensor
 	 *
 	 * @return   bool|object false if no data is returned by URL and the detail otherwise
 	 * @throws \Exception
 	 * @internal param string $url Google geocode API URL containing the address or latitude/longitude
 	 */
-    public function get($address, $options = [])
+    public function get($address, $options = [], $sensor = 'false')
     {
         if (empty($address)) {
             throw new \Exception("Address is required in order to process");
         }
 
-        $url = $this->getServiceUrl() . "&address=" . urlencode($address) . $this->buildQueryOptions($options);
+        $url = $this->getServiceUrl()
+	        . "&address=" . urlencode($address)
+	        . $this->buildQueryOptions($options)
+            . "&sensor=" . urlencode($sensor);
         $ch  = curl_init();
 
         curl_setopt($ch, CURLOPT_URL, $url);
