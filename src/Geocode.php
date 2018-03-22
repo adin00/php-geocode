@@ -43,23 +43,64 @@ class Geocode
     {
         return $this->serviceUrl;
     }
-
-    /**
-     * Sends request to the passed Google Geocode API URL and fetches the address details and returns them
-     *
-     * @param $address
-     *
-     * @return   bool|object false if no data is returned by URL and the detail otherwise
-     * @throws   \Exception
-     * @internal param string $url Google geocode API URL containing the address or latitude/longitude
-     */
-    public function get($address)
+	
+	/**
+	 * Viewport Biasing key: `bounds`
+	 *      format: [ [top_left_lat, top_left_lng], [bottom_right_lat, bottom_right_lng] ]
+	 *      https://developers.google.com/maps/documentation/geocoding/intro#Viewports
+	 * Region Biasing key: `region`
+	 *      https://developers.google.com/maps/documentation/geocoding/intro#RegionCodes
+	 * Component Filtering key: `components`
+	 *      https://developers.google.com/maps/documentation/geocoding/intro#ComponentFiltering
+	 *
+	 * @param array $options
+	 * @throws \Exception
+	 * @return string urlencoded options
+	 */
+	protected function buildQueryOptions($options) {
+		$q = '';
+		if(isset($options['bounds'])) {
+			if(count($options['bounds']) !== 2
+				|| count($options['bounds'][0]) !== 2
+				|| count($options['bounds'][1]) !== 2) {
+				
+				throw new \Exception("Viewport format is invalid");
+			}
+			$q .= "&bounds=" . join(',', $options['bounds'][0]) . "|" . join(',', $options['bounds'][1]);
+		}
+		
+		if(isset($options['region'])) {
+			$q .= "&region=" . $options['region'];
+		}
+		
+		if(isset($options['components'])) {
+			$components = [];
+			foreach ($options['components'] as $key => $component) {
+				$components[] = "{$key}:{$component}";
+			}
+			$q .= "&components=" . join('|', $components);
+		}
+		
+		return urlencode($q);
+	}
+	
+	/**
+	 * Sends request to the passed Google Geocode API URL and fetches the address details and returns them
+	 *
+	 * @param $address
+	 * @param array $options
+	 *
+	 * @return   bool|object false if no data is returned by URL and the detail otherwise
+	 * @throws \Exception
+	 * @internal param string $url Google geocode API URL containing the address or latitude/longitude
+	 */
+    public function get($address, $options = [])
     {
         if (empty($address)) {
             throw new \Exception("Address is required in order to process");
         }
 
-        $url = $this->getServiceUrl() . "&address=" . urlencode($address);
+        $url = $this->getServiceUrl() . "&address=" . urlencode($address) . $this->buildQueryOptions($options);
         $ch  = curl_init();
 
         curl_setopt($ch, CURLOPT_URL, $url);
